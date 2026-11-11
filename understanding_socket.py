@@ -23,60 +23,55 @@ def start_sniffer():
         local_ip = socket.gethostbyname(socket.gethostname())
         sniffer.bind((local_ip, 0))
         sniffer.ioctl(socket.SIO_RCVALL, socket.RCVALL_ON)
-        payload_offset = 0   
+    	payload_offset = 0   
 
     print("[+] Sniffer running normally. Monitoring all live interface traffic...\n")
 
     try:
         while True:
             raw_packets, address = sniffer.recvfrom(65535)
-            
-            if len(raw_packets) < (payload_offset + 20):
-                continue
-                
-            ip_header_bytes = raw_packets[payload_offset : payload_offset + 20]
-            
-            protocol_type = ip_header_bytes[9]
-            
-            src_ip_raw = ip_header_bytes[12:16]
-            dest_ip_raw = ip_header_bytes[16:20]
-            
-            src_ip = socket.inet_ntoa(src_ip_raw)
-            dest_ip = socket.inet_ntoa(dest_ip_raw)
-            
-            routing_info = f"IP Routing: {src_ip} -> {dest_ip} | Protocol ID: {protocol_type}"
-            print(routing_info)
-            log_traffic(routing_info)
 
-            if protocol_type == 6:
-                print("   [Protocol: TCP] -> Slicing for TCP Ports")
-                tcp_ports_bytes = raw_packets[payload_offset + 20 : payload_offset + 24]
-                src_port, dest_port = struct.unpack('!HH', tcp_ports_bytes)
+			if os.name == 'posix':
+				if len(raw_packets) < 14:
+					continue
+				eth_protocol = struct.unpack('!H', raw_packets[12:14])[0]
+			else:
+            	eth_protocol = 0x0800
 
-                port_info = f"   TCP Ports: {src_port} -> {dest_port}"
-                print(port_info)
-                log_traffic(port_info)
+			if eth_protocol == 0x0800 and len(raw_packets) >= (payload_offset + 20):
+                ip_header = raw_packets[payload_offset:payload_offset + 20]
+                ihl = (ip_header[0] & 0x0F) * 4
+                protocol_type, src_ip, dest_ip = ip_header[9], socket.inet_ntoa(ip_header[12:16]), socket.inet_ntoa(ip_header[16:20])
+                transport_offset = payload_offset + ihl
+            elif eth_protocol == 0x86DD and len(raw_packets) >= (payload_offset + 40):
+                ip6_header = raw_packets[payload_offset:payload_offset + 40]
+                protocol_type = ip6_header[6]
+                src_ip, dest_ip = socket.inet_ntop(socket.AF_INET6, ip6_header[8:24]), socket.inet_ntop(socket.AF_INET6, ip6_header[24:40])
+                transport_offset = payload_offset + 40
+			else:
+				continue
+			
+			routing_info = f"IP Routing: {src_ip} -> {dest_ip} | Protocol ID: {protocol_type}"
+			print(routing_info); log_traffic(routing_info)
 
-            elif protocol_type == 17:
-                print("   [Protocol: UDP] -> Slicing for UDP Ports")
-                udp_ports_bytes = raw_packets[payload_offset + 20 : payload_offset + 24]
-                src_port, dest_port = struct.unpack('!HH', udp_ports_bytes)
-
-                port_info = f"   UDP Ports: {src_port} -> {dest_port}"
-                print(port_info)
-                log_traffic(port_info)
-
-            elif protocol_type == 1:
-                print("   [Protocol: ICMP] -> Slicing for ICMP Type and Code")
-                icmp_bytes = raw_packets[payload_offset + 20 : payload_offset + 22]
-                icmp_type, icmp_code = struct.unpack('!BB', icmp_bytes)
-
-                port_info = f"   ICMP Type: {icmp_type} | ICMP Code: {icmp_code}"
-                print(port_info)
-                log_traffic(port_info)
-
+			if len(raw_packets) < (transport_offset + 4): continue
+			
+			if protocol_type in (6, 17):
+                p_name = "TCP" if protocol_type == 6 else "UDP"
+                print(f"   [Protocol: {p_name}] -> Slicing for {p_name} Ports")
+                s_port, d_port = struct.unpack('!HH', raw_packets[transport_offset:transport_offset + 4])
+                info = f"   {p_name} Ports: {s_port} -> {d_port}"
+            elif protocol_type in (1, 58):
+                label = "ICMPv6" if eth_protocol == 0x86DD else "ICMP"
+                print(f"   [Protocol: {label}] -> Slicing for {label} Type and Code")
+                i_type, i_code = struct.unpack('!BB', raw_packets[transport_offset:transport_offset + 2])
+                info = f"   {label} Type: {i_type} | {label} Code: {i_code}"
             else:
-                print(f"   [Protocol: {protocol_type}] -> No specific slicing implemented.")
+                info = f"   [Protocol: {protocol_type}] -> No specific slicing implemented."
+
+            print(info); log_traffic(info)
+
+            
 
     except KeyboardInterrupt:
         print("\n[+] Sniffer stopped by user.")
