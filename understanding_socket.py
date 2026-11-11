@@ -23,7 +23,7 @@ def start_sniffer():
         local_ip = socket.gethostbyname(socket.gethostname())
         sniffer.bind((local_ip, 0))
         sniffer.ioctl(socket.SIO_RCVALL, socket.RCVALL_ON)
-    	payload_offset = 0   
+		payload_offset = 0   
 
     print("[+] Sniffer running normally. Monitoring all live interface traffic...\n")
 
@@ -43,12 +43,14 @@ def start_sniffer():
                 ihl = (ip_header[0] & 0x0F) * 4
                 protocol_type, src_ip, dest_ip = ip_header[9], socket.inet_ntoa(ip_header[12:16]), socket.inet_ntoa(ip_header[16:20])
                 transport_offset = payload_offset + ihl
+                
             elif eth_protocol == 0x86DD and len(raw_packets) >= (payload_offset + 40):
                 ip6_header = raw_packets[payload_offset:payload_offset + 40]
                 protocol_type = ip6_header[6]
                 src_ip, dest_ip = socket.inet_ntop(socket.AF_INET6, ip6_header[8:24]), socket.inet_ntop(socket.AF_INET6, ip6_header[24:40])
                 transport_offset = payload_offset + 40
-			else:
+			
+            else:
 				continue
 			
 			routing_info = f"IP Routing: {src_ip} -> {dest_ip} | Protocol ID: {protocol_type}"
