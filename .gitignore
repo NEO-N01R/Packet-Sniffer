@@ -1,1 +1,19 @@
+# Ignore generated network capture logs
+network_traffic.log
+*.log
 
+# Ignore Python bytecode and cache directories
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Ignore virtual environments
+venv/
+.venv/
+env/
+
+# Ignore OS and IDE metadata
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
