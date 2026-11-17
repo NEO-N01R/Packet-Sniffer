@@ -80,6 +80,6 @@ NeoPackets_[2026-11-04 16:21:15] UDP Ports: 62838 -> 1900
 
 * [x] **Phase 1:** Hexadecimal-to-decimal octet conversion & Endianness analysis (`understanding_octet.py`).
 * [x] **Phase 2:** Multi-OS raw socket initialization, IPv4/TCP/UDP/ICMP header slicing, and file logging (`understanding_socket.py`).
-* [ ] **Phase 3:** Dynamic IP Header Length (`IHL`) calculation & EtherType (`0x0800`) filtering on Linux.
+* [x] **Phase 3:** Dynamic IP Header Length (`IHL`) calculation & EtherType (`0x0800`) filtering on Linux.
 * [ ] **Phase 4:** Basic anomaly detection (flagging rapid port scans and cleartext Telnet/FTP traffic).
 * [ ] **Phase 5:** 16-byte aligned Hex + ASCII payload dump viewer.
