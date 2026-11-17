@@ -13,14 +13,25 @@ This project was built to gain a deep, low-level understanding of how network fr
   * **Linux (`posix`):** Binds directly to Layer 2 using `socket.AF_PACKET` and `socket.htons(0x0003)` to capture raw Ethernet frames.
   * **Windows (`nt`):** Binds to `socket.AF_INET` and enables promiscuous mode via `SIO_RCVALL`.
 * **Manual Byte & Header Slicing:** Unpacks Network Byte Order (Big-Endian) binary headers using `struct` to extract source/destination IPv4 addresses, protocol IDs, TCP/UDP ports, and ICMP types/codes.
+* **IPv4 and IPv6 support:** Decodes source/destination addresses and
+  TCP/UDP/ICMP/ICMPv6 headers for both IP versions.
+* **Fragment awareness:** Detects non-first IPv4 fragments and skips
+  transport parsing for them, instead of reading payload bytes as ports.
 * **Automated Forensic Logging:** Appends live, timestamped packet metadata to `network_traffic.log` using a custom `NeoPackets_` callsign for real-time monitoring and post-capture filtering.
 
+---
+## Known Limitations
+- IPv6 extension headers are not parsed; transport info is only decoded
+  when it directly follows the 40-byte IPv6 header.
+- IPv6 fragments are not detected.
+- 802.1Q VLAN-tagged frames are not handled yet.
+- Linux and Windows only (macOS is unsupported).
 ---
 
 ## 📂 Repository Structure
 
-* `understanding_octet.py` — Foundational bit-manipulation script for converting raw hexadecimal strings into dotted-decimal IPv4 octets and analyzing Big-Endian vs. Little-Endian storage.
-* `understanding_socket.py` — Main cross-platform raw socket packet capture and protocol decoding engine.
+* `leaning.py` — Foundational bit-manipulation script for converting raw hexadecimal strings into dotted-decimal IPv4 octets and analyzing Big-Endian vs. Little-Endian storage.
+* `NeoPackets.py` — Main cross-platform raw socket packet capture and protocol decoding engine.
 
 ---
 
@@ -81,5 +92,5 @@ NeoPackets_[2026-11-04 16:21:15] UDP Ports: 62838 -> 1900
 * [x] **Phase 1:** Hexadecimal-to-decimal octet conversion & Endianness analysis (`understanding_octet.py`).
 * [x] **Phase 2:** Multi-OS raw socket initialization, IPv4/TCP/UDP/ICMP header slicing, and file logging (`understanding_socket.py`).
 * [x] **Phase 3:** Dynamic IP Header Length (`IHL`) calculation & EtherType (`0x0800`) filtering on Linux.
-* [ ] **Phase 4:** Basic anomaly detection (flagging rapid port scans and cleartext Telnet/FTP traffic).
+* [ ] **Phase 4:** Basic anomaly detection (flagging rapid port scans and cleartext Telnet/FTP traffic). IPv6 extension header handling
 * [ ] **Phase 5:** 16-byte aligned Hex + ASCII payload dump viewer.
